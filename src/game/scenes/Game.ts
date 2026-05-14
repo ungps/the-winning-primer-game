@@ -45,6 +45,9 @@ export class Game extends Scene
     uiElements: GameObjects.GameObject[] = [];
     screamSound!: Phaser.Sound.BaseSound;
 
+    compliment!: GameObjects.Text;
+    complimentTimer: Phaser.Time.TimerEvent | null = null;
+
     constructor() { super('Game'); }
 
     init() {
@@ -162,6 +165,13 @@ export class Game extends Scene
         this.controls = this.add.container(0, 0).setDepth(9001).setVisible(false);
         this.buildControls();
         this.uiElements.push(this.selectionGfx, this.controls);
+
+        // Compliment popup (fires 2s after the most recent dressing action)
+        this.compliment = this.add.text(CHRIS_X, 78, '', {
+            fontFamily: 'Arial Black', fontSize: 30, color: '#ffcc33',
+            stroke: '#000000', strokeThickness: 6,
+        }).setOrigin(0.5).setDepth(9500).setAlpha(0);
+        this.uiElements.push(this.compliment);
 
         // Deselect when clicking truly empty canvas
         this.input.on('pointerdown', (_p: Input.Pointer, objs: GameObjects.GameObject[]) => {
@@ -314,12 +324,14 @@ export class Game extends Scene
         sprite.on('drag', (_p: Input.Pointer, dragX: number, dragY: number) => {
             sprite.setPosition(dragX, dragY);
             if (this.selected === item) this.refreshSelectionVisuals();
+            this.scheduleCompliment();
         });
 
         sprite.setScale(0);
         this.tweens.add({ targets: sprite, scale: targetScale, ease: 'Back.Out', duration: 240 });
 
         this.setSelected(item);
+        this.scheduleCompliment();
     }
 
     setSelected(item: PlacedItem | null) {
@@ -383,6 +395,45 @@ export class Game extends Scene
         const next = Math.max(0.05, Math.min(3.0, item.sprite.scaleX * factor));
         item.sprite.setScale(next);
         if (this.selected === item) this.refreshSelectionVisuals();
+        this.scheduleCompliment();
+    }
+
+    scheduleCompliment() {
+        if (this.complimentTimer) this.complimentTimer.remove(false);
+        this.complimentTimer = this.time.delayedCall(2000, () => this.showCompliment());
+    }
+
+    showCompliment() {
+        const msgs = [
+            'Chris-tastic!',
+            'Chris-mazing!',
+            'Chrisful!',
+            'Chris-quisite!',
+            'Chris-tonishing!',
+            'Chris-arming!',
+            'Très Chris.',
+            'Magnifique!',
+            'Ooh la la.',
+            "C'est très Chris.",
+        ];
+        const msg = msgs[Math.floor(Math.random() * msgs.length)];
+        this.compliment.setText(msg);
+        this.tweens.killTweensOf(this.compliment);
+        this.compliment.setScale(0.6).setAlpha(0);
+        this.tweens.add({
+            targets: this.compliment,
+            alpha: 1, scale: 1,
+            ease: 'Back.Out', duration: 280,
+            onComplete: () => {
+                this.tweens.add({
+                    targets: this.compliment,
+                    alpha: 0,
+                    delay: 1400,
+                    duration: 500,
+                    ease: 'Sine.In',
+                });
+            }
+        });
     }
 
     remove(item: PlacedItem) {
