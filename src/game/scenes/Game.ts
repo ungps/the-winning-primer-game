@@ -66,6 +66,17 @@ export class Game extends Scene
         }
         if (this.cache.audio.exists('scream')) {
             this.screamSound = this.sound.add('scream', { volume: 1 });
+            // Pre-warm the audio buffer so the first scream isn't delayed by
+            // WebAudio source-node setup.
+            this.screamSound.play({ volume: 0 });
+            this.time.delayedCall(40, () => this.screamSound.stop());
+        }
+
+        // Pre-warm the jumpscare texture (2.6MB) so the first GPU upload
+        // doesn't hitch the frame when it actually fires.
+        if (this.textures.exists('jumpscare')) {
+            const warm = this.add.image(-9999, -9999, 'jumpscare').setAlpha(0);
+            this.time.delayedCall(60, () => warm.destroy());
         }
 
         this.add.image(512, 384, 'background').setAlpha(0.35).setDepth(-100);
@@ -202,31 +213,23 @@ export class Game extends Scene
     }
 
     jumpScare() {
-        if (this.screamSound) {
-            this.screamSound.play();
-        }
         const img = this.add.image(512, 384, 'jumpscare').setDepth(99999);
         const scale = Math.max(1024 / Math.max(img.width, 1), 768 / Math.max(img.height, 1));
         img.setScale(scale * 1.05);
         img.setAlpha(1);
 
+        if (this.screamSound) this.screamSound.play();
         this.cameras.main.shake(450, 0.025);
-        this.cameras.main.flash(140, 255, 0, 0);
+        this.cameras.main.flash(60, 255, 0, 0);
 
-        this.tweens.add({
-            targets: img,
-            alpha: 1,
-            duration: 1,
-            onComplete: () => {
-                this.tweens.add({
-                    targets: img,
-                    alpha: 0,
-                    duration: 350,
-                    delay: 450,
-                    ease: 'Sine.In',
-                    onComplete: () => img.destroy(),
-                });
-            },
+        this.time.delayedCall(450, () => {
+            this.tweens.add({
+                targets: img,
+                alpha: 0,
+                duration: 350,
+                ease: 'Sine.In',
+                onComplete: () => img.destroy(),
+            });
         });
     }
 

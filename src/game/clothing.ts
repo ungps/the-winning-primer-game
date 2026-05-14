@@ -48,7 +48,6 @@ export const CLOTHING: Record<Category, string[]> = {
     shoes:   [
         'bluez.png',
         'brown_leather.png',
-        'bunny_hat (1).png',
         'disco_platform.png',
         'hoofs.png',
         'peugeot.png',
