@@ -218,7 +218,9 @@ export class Game extends Scene
         img.setScale(scale * 1.05);
         img.setAlpha(1);
 
-        if (this.screamSound) this.screamSound.play();
+        // Pass volume explicitly: the prewarm in create() played at volume 0,
+        // and Phaser remembers the last-used volume on the sound instance.
+        if (this.screamSound) this.screamSound.play({ volume: 1 });
         this.cameras.main.shake(450, 0.025);
         this.cameras.main.flash(60, 255, 0, 0);
 
