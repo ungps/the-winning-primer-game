@@ -58,6 +58,8 @@ export function itemKey(category: Category, filename: string): string {
 }
 
 export function itemUrl(category: Category, filename: string): string {
-    // Encode spaces, commas, parens etc. so paths with funky filenames still resolve.
-    return `assets/${category}/${encodeURIComponent(filename)}`;
+    // encodeURI escapes spaces and other unsafe chars but leaves commas, parens
+    // and other RFC sub-delims raw. Vite's static server returns the SPA fallback
+    // for %2C in paths, so we must NOT use encodeURIComponent here.
+    return `assets/${category}/${encodeURI(filename)}`;
 }
