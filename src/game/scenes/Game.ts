@@ -43,6 +43,7 @@ export class Game extends Scene
     controls!: GameObjects.Container;
     controlSet: GameObjects.GameObject[] = [];
     uiElements: GameObjects.GameObject[] = [];
+    screamSound!: Phaser.Sound.BaseSound;
 
     constructor() { super('Game'); }
 
@@ -59,6 +60,9 @@ export class Game extends Scene
     create() {
         if (!this.sound.get('bgm') && this.cache.audio.exists('bgm')) {
             this.sound.add('bgm', { loop: true, volume: 0.5 }).play();
+        }
+        if (this.cache.audio.exists('scream')) {
+            this.screamSound = this.sound.add('scream', { volume: 1 });
         }
 
         this.add.image(512, 384, 'background').setAlpha(0.35).setDepth(-100);
@@ -186,10 +190,13 @@ export class Game extends Scene
     }
 
     jumpScare() {
+        if (this.screamSound) {
+            this.screamSound.play();
+        }
         const img = this.add.image(512, 384, 'jumpscare').setDepth(99999);
         const scale = Math.max(1024 / Math.max(img.width, 1), 768 / Math.max(img.height, 1));
         img.setScale(scale * 1.05);
-        img.setAlpha(0);
+        img.setAlpha(1);
 
         this.cameras.main.shake(450, 0.025);
         this.cameras.main.flash(140, 255, 0, 0);
@@ -197,7 +204,7 @@ export class Game extends Scene
         this.tweens.add({
             targets: img,
             alpha: 1,
-            duration: 60,
+            duration: 1,
             onComplete: () => {
                 this.tweens.add({
                     targets: img,

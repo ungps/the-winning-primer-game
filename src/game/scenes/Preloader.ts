@@ -27,6 +27,7 @@ export class Preloader extends Scene
         this.load.image('jumpscare', 'assets/jumpscare/jumpscare.png');
 
         this.load.audio('bgm', 'music/music.mp3');
+        this.load.audio('scream', 'music/scream.mp3');
 
         for (const category of CATEGORIES) {
             for (const filename of CLOTHING[category]) {
