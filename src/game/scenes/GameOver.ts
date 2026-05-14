@@ -9,7 +9,7 @@ interface FinaleData {
     items?: ItemOption[];
 }
 
-const CHRIS_SCALE = 0.42;
+const CHRIS_TARGET_H = 540;
 const EMOJI_FONT = 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Arial';
 
 const RATINGS = [
@@ -53,7 +53,8 @@ export class GameOver extends Scene
 
         const chrisX = 512;
         const chrisY = 440;
-        const chris = this.add.image(chrisX, chrisY, 'chris-swimsuit').setScale(CHRIS_SCALE).setDepth(0);
+        const chris = this.add.image(chrisX, chrisY, 'chris').setDepth(0);
+        chris.setScale(CHRIS_TARGET_H / chris.height);
         const chrisW = chris.displayWidth;
         const chrisH = chris.displayHeight;
 
