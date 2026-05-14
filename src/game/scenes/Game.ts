@@ -167,9 +167,11 @@ export class Game extends Scene
         this.uiElements.push(this.selectionGfx, this.controls);
 
         // Compliment popup (fires 2s after the most recent dressing action)
-        this.compliment = this.add.text(CHRIS_X, 78, '', {
-            fontFamily: 'Arial Black', fontSize: 30, color: '#ffcc33',
-            stroke: '#000000', strokeThickness: 6,
+        this.compliment = this.add.text(512, 384, '', {
+            fontFamily: 'Arial Black', fontSize: 84, color: '#ffe14a',
+            stroke: '#ff2299', strokeThickness: 10,
+            align: 'center',
+            shadow: { offsetX: 0, offsetY: 6, color: '#000000', blur: 8, fill: true },
         }).setOrigin(0.5).setDepth(9500).setAlpha(0);
         this.uiElements.push(this.compliment);
 
@@ -405,30 +407,46 @@ export class Game extends Scene
 
     showCompliment() {
         const msgs = [
-            'Chris-tastic!',
-            'Chris-mazing!',
-            'Chrisful!',
-            'Chris-quisite!',
-            'Chris-tonishing!',
-            'Chris-arming!',
-            'Très Chris.',
-            'Magnifique!',
-            'Ooh la la.',
-            "C'est très Chris.",
+            '✨ Chris-tastic! ✨',
+            '🌟 Chris-mazing! 🌟',
+            '💖 Chrisful! 💖',
+            '✨ Chris-quisite! ✨',
+            '🎉 Chris-tonishing! 🎉',
+            '😍 Chris-arming! 😍',
+            '✨ Très Chris! ✨',
+            '🌟 Magnifique! 🌟',
+            '💖 Ooh là là! 💖',
+            "🎉 C'est très Chris! 🎉",
+            '👑 Slay, Chris! 👑',
+            '🔥 Iconic! 🔥',
+            '🥐 Chef\'s kiss! 🥐',
         ];
         const msg = msgs[Math.floor(Math.random() * msgs.length)];
         this.compliment.setText(msg);
         this.tweens.killTweensOf(this.compliment);
-        this.compliment.setScale(0.6).setAlpha(0);
+        this.compliment.setScale(0.2).setAlpha(0).setAngle(-8);
+
         this.tweens.add({
             targets: this.compliment,
-            alpha: 1, scale: 1,
-            ease: 'Back.Out', duration: 280,
+            scale: 1.0,
+            alpha: 1,
+            angle: 0,
+            ease: 'Back.Out',
+            duration: 360,
             onComplete: () => {
                 this.tweens.add({
                     targets: this.compliment,
+                    angle: { from: -3, to: 3 },
+                    ease: 'Sine.InOut',
+                    duration: 220,
+                    yoyo: true,
+                    repeat: 2,
+                });
+                this.tweens.add({
+                    targets: this.compliment,
                     alpha: 0,
-                    delay: 1400,
+                    scale: 1.25,
+                    delay: 1200,
                     duration: 500,
                     ease: 'Sine.In',
                 });

@@ -15,7 +15,11 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 };
 
 export const CLOTHING: Record<Category, string[]> = {
-    hats:    [],
+    hats:    [
+        'bunny_hat.png',
+        'helmet.png',
+        'pink_beret.png',
+    ],
     tops:    [
         '7fe46b0a-1aa7-4049-82ea-3167bbab17df(1).png',
         '89552f54-cb9e-49e8-8bad-1635c4a24bb0(1).png',
@@ -41,7 +45,15 @@ export const CLOTHING: Record<Category, string[]> = {
         'ChatGPT Image May 14, 2026, 03_40_25 PM.png',
         'image.psd(5).png',
     ],
-    shoes:   [],
+    shoes:   [
+        'bluez.png',
+        'brown_leather.png',
+        'bunny_hat (1).png',
+        'disco_platform.png',
+        'hoofs.png',
+        'peugeot.png',
+        'unicorn.png',
+    ],
 };
 
 // Where (relative to mannequin center) and how big to spawn a fresh item.
