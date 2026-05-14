@@ -67,7 +67,7 @@ export class Game extends Scene
 
         this.add.image(512, 384, 'background').setAlpha(0.35).setDepth(-100);
 
-        const title = this.add.text(CHRIS_X, 36, 'Christomize Chris', {
+        const title = this.add.text(CHRIS_X, 36, 'Christomize', {
             fontFamily: 'Arial Black', fontSize: 32, color: '#ffffff',
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
