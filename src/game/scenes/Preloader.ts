@@ -22,10 +22,11 @@ export class Preloader extends Scene
 
     preload ()
     {
-        this.load.image('chris', 'chris/normal-chris.png');
-        this.load.image('chris-super', 'chris/super-chris.png');
-        this.load.image('chris-french', 'chris/french-chris.png');
-        this.load.image('chris-after-hours', 'chris/after-hours-chris.png');
+        this.load.image('chris-swimsuit', 'chris/swimsuit-chris.png');
+        this.load.image('item-beret',    'chris/pink-beret.png');
+        this.load.image('item-bunny',    'chris/bunny-hat.png');
+        this.load.image('item-tshirt',   'chris/t-shirt.png');
+        this.load.image('item-pants',    'chris/pink-pants.png');
     }
 
     create ()

@@ -1,55 +1,85 @@
-import { Scene, GameObjects } from 'phaser';
+import { Scene } from 'phaser';
 
-interface GameOverData {
-    score?: number;
+type ItemOption =
+    | { kind: 'none' }
+    | { kind: 'emoji';  emoji: string; size: number; dxFrac: number; dyFrac: number; depth: number; label: string }
+    | { kind: 'sprite'; key: string;   widthFrac: number; dxFrac: number; dyFrac: number; depth: number; label: string };
+
+interface FinaleData {
+    items?: ItemOption[];
 }
+
+const CHRIS_SCALE = 0.42;
+const EMOJI_FONT = 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Arial';
+
+const RATINGS = [
+    { min: 0, title: 'Hmm.',         subtitle: 'Are you... certain?' },
+    { min: 2, title: "C'est bien.",  subtitle: 'Has potential.' },
+    { min: 4, title: 'Magnifique!',  subtitle: 'Très chic, mon ami.' },
+    { min: 6, title: 'INCROYABLE!',  subtitle: 'A look. A vibe. A moment.' },
+];
 
 export class GameOver extends Scene
 {
-    background: GameObjects.Image;
-    score = 0;
+    constructor() { super('GameOver'); }
 
-    constructor ()
-    {
-        super('GameOver');
-    }
+    create(data: FinaleData) {
+        this.add.image(512, 384, 'background').setAlpha(0.55).setDepth(-1);
 
-    init (data: GameOverData)
-    {
-        this.score = data?.score ?? 0;
-    }
+        this.add.particles(512, 720, 'sparkle', {
+            speedY: { min: -130, max: -50 },
+            speedX: { min: -70, max: 70 },
+            lifespan: 2500,
+            quantity: 2,
+            frequency: 70,
+            scale: { start: 1, end: 0 },
+            alpha: { start: 0.9, end: 0 },
+            blendMode: 'ADD'
+        });
 
-    create ()
-    {
-        this.background = this.add.image(512, 384, 'background').setAlpha(0.6);
+        const items = data?.items ?? [];
+        const equipped = items.filter(i => i.kind !== 'none').length;
+        const rating = [...RATINGS].reverse().find(r => equipped >= r.min) ?? RATINGS[0];
 
-        this.add.image(512, 300, 'chris-after-hours').setScale(0.5);
-
-        this.add.text(512, 480, 'Merdre!', {
-            fontFamily: 'Arial Black', fontSize: 96, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 10
+        this.add.text(512, 70, rating.title, {
+            fontFamily: 'Arial Black', fontSize: 78, color: '#ffcc33',
+            stroke: '#ff3399', strokeThickness: 10
         }).setOrigin(0.5);
 
-        this.add.text(512, 560, `Final score: ${this.score}`, {
-            fontFamily: 'Arial', fontSize: 36, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 6
+        this.add.text(512, 130, rating.subtitle, {
+            fontFamily: 'Arial', fontSize: 24, color: '#ffffff',
+            stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
-        const prompt = this.add.text(512, 680, 'click to play again', {
+        const chrisX = 512;
+        const chrisY = 440;
+        const chris = this.add.image(chrisX, chrisY, 'chris-swimsuit').setScale(CHRIS_SCALE).setDepth(0);
+        const chrisW = chris.displayWidth;
+        const chrisH = chris.displayHeight;
+
+        items.forEach(opt => {
+            if (opt.kind === 'none') return;
+            const x = chrisX + opt.dxFrac * chrisW;
+            const y = chrisY + opt.dyFrac * chrisH;
+            if (opt.kind === 'emoji') {
+                this.add.text(x, y, opt.emoji, {
+                    fontFamily: EMOJI_FONT, fontSize: opt.size
+                }).setOrigin(0.5).setDepth(opt.depth);
+            } else {
+                const img = this.add.image(x, y, opt.key).setOrigin(0.5).setDepth(opt.depth);
+                img.setScale((opt.widthFrac * chrisW) / img.width);
+            }
+        });
+
+        const prompt = this.add.text(512, 735, 'click to redress', {
             fontFamily: 'Arial', fontSize: 24, color: '#ffffff',
             stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
         this.tweens.add({
             targets: prompt,
-            alpha: 0.3,
-            ease: 'Sine.InOut',
-            duration: 700,
-            yoyo: true,
-            repeat: -1
+            alpha: 0.3, ease: 'Sine.InOut', duration: 700, yoyo: true, repeat: -1
         });
 
-        this.input.once('pointerdown', () => {
-            this.scene.start('MainMenu');
-        });
+        this.input.once('pointerdown', () => this.scene.start('NamePrompt'));
     }
 }

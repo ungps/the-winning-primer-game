@@ -1,287 +1,288 @@
-import { Scene, Physics, GameObjects, Types } from 'phaser';
+import { Scene, GameObjects } from 'phaser';
 
-const PLAYER_SPEED = 280;
-const CHASE_SPEED = 115;
-const WANDER_SPEED = 70;
-const FLEE_SPEED = 200;
-const SUPER_DURATION = 3000;
-const POWERUP_RESPAWN = 5000;
-const SPAWN_INTERVAL = 18000;
-const MAX_FRENCHIES = 6;
+type Slot = 'head' | 'face' | 'body' | 'legs' | 'hands';
 
-type Mode = 'chase' | 'wander' | 'idle';
-interface ChaserState {
-    mode: Mode;
-    until: number;
-    wanderX: number;
-    wanderY: number;
-    lastWasChase: boolean;
+type ItemOption =
+    | { kind: 'none' }
+    | { kind: 'emoji';  emoji: string; size: number; dxFrac: number; dyFrac: number; depth: number; label: string }
+    | { kind: 'sprite'; key: string;   widthFrac: number; dxFrac: number; dyFrac: number; depth: number; label: string };
+
+interface SlotConfig {
+    label: string;
+    options: ItemOption[];
 }
+
+const CHRIS_X = 320;
+const CHRIS_Y = 410;
+const CHRIS_SCALE = 0.42;
+const EMOJI_FONT = 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Arial';
+
+const D_BODY  = 4;
+const D_LEGS  = 4;
+const D_HEAD  = 6;
+const D_FACE  = 7;
+const D_HANDS = 7;
+
+const SLOTS: Record<Slot, SlotConfig> = {
+    head: {
+        label: 'Tête',
+        options: [
+            { kind: 'none' },
+            { kind: 'sprite', key: 'item-beret', widthFrac: 0.50, dxFrac: 0, dyFrac: -0.42, depth: D_HEAD, label: 'Pink beret' },
+            { kind: 'sprite', key: 'item-bunny', widthFrac: 0.30, dxFrac: 0, dyFrac: -0.45, depth: D_HEAD, label: 'Bunny hat' },
+            { kind: 'emoji', emoji: '🎩', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Top hat' },
+            { kind: 'emoji', emoji: '👑', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Crown' },
+            { kind: 'emoji', emoji: '🥐', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Croissant' },
+            { kind: 'emoji', emoji: '🍕', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Pizza' },
+            { kind: 'emoji', emoji: '🤠', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Cowboy' },
+            { kind: 'emoji', emoji: '🎓', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Grad cap' },
+        ],
+    },
+    face: {
+        label: 'Visage',
+        options: [
+            { kind: 'none' },
+            { kind: 'emoji', emoji: '🕶️', size: 60, dxFrac: 0, dyFrac: -0.34, depth: D_FACE, label: 'Shades' },
+            { kind: 'emoji', emoji: '🥸', size: 60, dxFrac: 0, dyFrac: -0.34, depth: D_FACE, label: 'Disguise' },
+            { kind: 'emoji', emoji: '🤿', size: 60, dxFrac: 0, dyFrac: -0.34, depth: D_FACE, label: 'Snorkel' },
+            { kind: 'emoji', emoji: '😷', size: 60, dxFrac: 0, dyFrac: -0.34, depth: D_FACE, label: 'Mask' },
+            { kind: 'emoji', emoji: '🧐', size: 60, dxFrac: 0, dyFrac: -0.34, depth: D_FACE, label: 'Monocle' },
+        ],
+    },
+    body: {
+        label: 'Corps',
+        options: [
+            { kind: 'none' },
+            { kind: 'sprite', key: 'item-tshirt', widthFrac: 0.55, dxFrac: 0, dyFrac: -0.10, depth: D_BODY, label: 'Emoji tee' },
+            { kind: 'emoji', emoji: '🦺', size: 90, dxFrac: 0, dyFrac: -0.08, depth: D_BODY, label: 'Hi-vis' },
+            { kind: 'emoji', emoji: '👔', size: 90, dxFrac: 0, dyFrac: -0.08, depth: D_BODY, label: 'Tie' },
+            { kind: 'emoji', emoji: '🎺', size: 80, dxFrac: 0, dyFrac: -0.08, depth: D_BODY, label: 'Trumpet' },
+            { kind: 'emoji', emoji: '📿', size: 70, dxFrac: 0, dyFrac: -0.16, depth: D_BODY, label: 'Beads' },
+        ],
+    },
+    legs: {
+        label: 'Jambes',
+        options: [
+            { kind: 'none' },
+            { kind: 'sprite', key: 'item-pants', widthFrac: 0.70, dxFrac: 0, dyFrac: 0.15, depth: D_LEGS, label: 'Pink pants' },
+        ],
+    },
+    hands: {
+        label: 'Mains',
+        options: [
+            { kind: 'none' },
+            { kind: 'emoji', emoji: '🥖', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Baguette' },
+            { kind: 'emoji', emoji: '🍌', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Banana' },
+            { kind: 'emoji', emoji: '🎤', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Mic' },
+            { kind: 'emoji', emoji: '🍷', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Wine' },
+            { kind: 'emoji', emoji: '🪄', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Wand' },
+            { kind: 'emoji', emoji: '🐠', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Fish' },
+            { kind: 'emoji', emoji: '🥐', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Croissant' },
+        ],
+    },
+};
+
+const SLOT_ORDER: Slot[] = ['head', 'face', 'body', 'legs', 'hands'];
 
 export class Game extends Scene
 {
-    background: GameObjects.Image;
-    chris: Physics.Arcade.Sprite;
-    frenchies: Physics.Arcade.Group;
-    powerup: Physics.Arcade.Sprite;
-    cursors: Types.Input.Keyboard.CursorKeys;
-    wasd: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
-    scoreText: GameObjects.Text;
-    instructions: GameObjects.Container;
-    chaserState: Map<Physics.Arcade.Sprite, ChaserState> = new Map();
-    score = 0;
-    isSuper = false;
+    chris: GameObjects.Image;
+    chrisW = 0;
+    chrisH = 0;
+    overlays: Partial<Record<Slot, GameObjects.GameObject>> = {};
+    panelDisplays: Partial<Record<Slot, GameObjects.GameObject>> = {};
+    panelPositions: Partial<Record<Slot, { x: number; y: number }>> = {};
+    selection: Record<Slot, number> = { head: 0, face: 0, body: 0, legs: 0, hands: 0 };
+    feedback: GameObjects.Text;
 
-    constructor ()
-    {
-        super('Game');
+    constructor() { super('Game'); }
+
+    init() {
+        this.selection = { head: 0, face: 0, body: 0, legs: 0, hands: 0 };
+        this.overlays = {};
+        this.panelDisplays = {};
+        this.panelPositions = {};
     }
 
-    create ()
-    {
-        this.score = 0;
-        this.isSuper = false;
-        this.chaserState = new Map();
+    create() {
+        this.add.image(512, 384, 'background').setAlpha(0.4).setDepth(-1);
 
-        const kb = this.input.keyboard!;
-        this.cursors = kb.createCursorKeys();
-        this.wasd = kb.addKeys('W,A,S,D') as typeof this.wasd;
-
-        this.background = this.add.image(512, 384, 'background').setDisplaySize(1024, 768);
-
-        this.chris = this.physics.add.sprite(160, 384, 'chris').setScale(0.5);
-        this.chris.setCollideWorldBounds(true);
-
-        this.frenchies = this.physics.add.group();
-        this.spawnFrenchie(820, 200);
-        this.spawnFrenchie(500, 600);
-        this.spawnFrenchie(700, 100);
-
-        this.time.addEvent({
-            delay: SPAWN_INTERVAL,
-            loop: true,
-            callback: () => {
-                if (this.frenchies.getLength() >= MAX_FRENCHIES) return;
-                const edge = Math.floor(Math.random() * 4);
-                let x: number;
-                let y: number;
-                if (edge === 0) { x = 50;  y = Math.floor(Math.random() * 668) + 50; }
-                else if (edge === 1) { x = 974; y = Math.floor(Math.random() * 668) + 50; }
-                else if (edge === 2) { x = Math.floor(Math.random() * 924) + 50; y = 50; }
-                else               { x = Math.floor(Math.random() * 924) + 50; y = 718; }
-                this.spawnFrenchie(x, y);
-            }
-        });
-
-        this.powerup = this.physics.add.sprite(512, 384, 'chris-super').setScale(0.4);
-        this.placePowerup();
-
-        this.scoreText = this.add.text(20, 16, 'Score: 0', {
-            fontFamily: 'Arial', fontSize: 28, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 4
-        });
-
-        this.time.addEvent({
-            delay: 1000,
-            loop: true,
-            callback: () => {
-                this.score += 1;
-                this.scoreText.setText(`Score: ${this.score}`);
-            }
-        });
-
-        this.buildInstructions();
-
-        this.physics.add.overlap(this.chris, this.frenchies, () => this.hitFrenchie());
-        this.physics.add.overlap(this.chris, this.powerup, () => this.collectPowerup());
-    }
-
-    update ()
-    {
-        if (!this.cursors || !this.wasd) return;
-
-        const left = this.cursors.left.isDown || this.wasd.A.isDown;
-        const right = this.cursors.right.isDown || this.wasd.D.isDown;
-        const up = this.cursors.up.isDown || this.wasd.W.isDown;
-        const down = this.cursors.down.isDown || this.wasd.S.isDown;
-
-        const vx = left ? -PLAYER_SPEED : right ? PLAYER_SPEED : 0;
-        const vy = up ? -PLAYER_SPEED : down ? PLAYER_SPEED : 0;
-        this.chris.setVelocity(vx, vy);
-
-        const now = this.time.now;
-        const chasers = this.frenchies.getChildren() as Physics.Arcade.Sprite[];
-        for (const f of chasers)
-        {
-            if (this.isSuper)
-            {
-                const dx = f.x - this.chris.x;
-                const dy = f.y - this.chris.y;
-                const len = Math.hypot(dx, dy) || 1;
-                f.setVelocity((dx / len) * FLEE_SPEED, (dy / len) * FLEE_SPEED);
-            }
-            else
-            {
-                let state = this.chaserState.get(f);
-                if (!state || now >= state.until)
-                {
-                    const prevWasChase = state?.mode === 'chase';
-                    state = this.rollChaserState(now, prevWasChase);
-                    this.chaserState.set(f, state);
-                }
-
-                if (state.mode === 'chase')
-                {
-                    this.physics.moveToObject(f, this.chris, CHASE_SPEED);
-                }
-                else if (state.mode === 'wander')
-                {
-                    this.physics.moveTo(f, state.wanderX, state.wanderY, WANDER_SPEED);
-                }
-                else
-                {
-                    f.setVelocity(0, 0);
-                }
-            }
-
-            const body = f.body as Physics.Arcade.Body;
-            if (body && (body.velocity.x !== 0 || body.velocity.y !== 0))
-            {
-                f.setRotation(Math.atan2(body.velocity.y, body.velocity.x));
-            }
-        }
-    }
-
-    rollChaserState (now: number, prevWasChase: boolean): ChaserState
-    {
-        // After a chase, force a cooldown — must wander or idle before chasing again.
-        // Otherwise 25% chase / 55% wander / 20% idle.
-        const r = Math.random();
-        const canChase = !prevWasChase;
-
-        if (canChase && r < 0.25)
-        {
-            // Short, twitchy chase — locks on for under a second, then loses interest.
-            return {
-                mode: 'chase',
-                until: now + 500 + Math.random() * 500,
-                wanderX: 0, wanderY: 0,
-                lastWasChase: true
-            };
-        }
-
-        // Pick wander vs idle (when chase isn't available, redistribute its weight).
-        const wanderCutoff = canChase ? 0.8 : 0.75;
-        if (r < wanderCutoff)
-        {
-            return {
-                mode: 'wander',
-                until: now + 1500 + Math.random() * 2500,
-                wanderX: Math.floor(Math.random() * 924) + 50,
-                wanderY: Math.floor(Math.random() * 668) + 50,
-                lastWasChase: false
-            };
-        }
-
-        return {
-            mode: 'idle',
-            until: now + 800 + Math.random() * 1500,
-            wanderX: 0, wanderY: 0,
-            lastWasChase: false
-        };
-    }
-
-    buildInstructions ()
-    {
-        const lines = [
-            'Arrow keys or WASD to move',
-            'French Chris wanders, then hunts — watch when they lock on',
-            'Grab Super Chris to make them flee for 3 seconds',
-            'Survive as long as you can'
-        ];
-
-        const panel = this.add.rectangle(512, 110, 720, 160, 0x000000, 0.55)
-            .setStrokeStyle(2, 0xffffff, 0.6);
-
-        const title = this.add.text(512, 50, 'How to play', {
-            fontFamily: 'Arial Black', fontSize: 26, color: '#ffffff'
+        this.add.text(320, 50, 'Christomize Chris', {
+            fontFamily: 'Arial Black', fontSize: 36, color: '#ffffff',
+            stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
 
-        const body = this.add.text(512, 110, lines.join('\n'), {
-            fontFamily: 'Arial', fontSize: 18, color: '#ffffff', align: 'center'
+        this.add.text(320, 90, 'Bonjour. Habillez-vous.', {
+            fontFamily: 'Arial', fontSize: 20, color: '#ffd6f0',
+            stroke: '#000000', strokeThickness: 3
         }).setOrigin(0.5);
 
-        this.instructions = this.add.container(0, 0, [panel, title, body]);
-
+        this.chris = this.add.image(CHRIS_X, CHRIS_Y, 'chris-swimsuit').setScale(CHRIS_SCALE).setDepth(0);
+        this.chrisW = this.chris.displayWidth;
+        this.chrisH = this.chris.displayHeight;
         this.tweens.add({
-            targets: this.instructions,
-            alpha: 0,
-            delay: 4000,
-            duration: 800,
-            onComplete: () => this.instructions.destroy()
-        });
-    }
-
-    spawnFrenchie (x: number, y: number)
-    {
-        const f = this.physics.add.sprite(x, y, 'chris-french').setScale(0.4);
-        this.frenchies.add(f);
-        // Start idle for a beat so the player gets a moment to read the board.
-        this.chaserState.set(f, {
-            mode: 'idle',
-            until: this.time.now + 1000 + Math.random() * 1500,
-            wanderX: 0, wanderY: 0,
-            lastWasChase: false
-        });
-        if (this.isSuper) f.setTint(0xff5555);
-    }
-
-    placePowerup ()
-    {
-        const x = Math.floor(Math.random() * 824) + 100;
-        const y = Math.floor(Math.random() * 568) + 100;
-        // Kill any pulse tween from a previous spawn — otherwise tweens stack
-        // and the scale converges to 0, making the powerup invisible.
-        this.tweens.killTweensOf(this.powerup);
-        this.powerup.setScale(0.4);
-        this.powerup.enableBody(true, x, y, true, true);
-        this.tweens.add({
-            targets: this.powerup,
-            scale: 0.5,
+            targets: this.chris,
+            y: CHRIS_Y - 6,
             ease: 'Sine.InOut',
-            duration: 600,
+            duration: 1800,
             yoyo: true,
             repeat: -1
         });
-    }
 
-    collectPowerup ()
-    {
-        if (!this.powerup.active) return;
+        const panelX = 800;
+        SLOT_ORDER.forEach((slot, i) => {
+            const y = 155 + i * 92;
+            this.panelPositions[slot] = { x: panelX, y };
 
-        this.powerup.disableBody(true, true);
-        this.isSuper = true;
-        this.chris.setTexture('chris-super');
-        this.chris.setTint(0xfff7a8);
-        this.tweens.add({ targets: this.chris, scale: 0.65, duration: 200, yoyo: true });
+            this.add.text(panelX - 200, y, SLOTS[slot].label, {
+                fontFamily: 'Arial Black', fontSize: 24, color: '#ffffff',
+                stroke: '#000000', strokeThickness: 4
+            }).setOrigin(0, 0.5);
 
-        (this.frenchies.getChildren() as Physics.Arcade.Sprite[]).forEach(f => f.setTint(0xff5555));
+            const leftBtn = this.add.text(panelX - 90, y, '◀', {
+                fontFamily: 'Arial Black', fontSize: 36, color: '#ff66cc',
+                stroke: '#000000', strokeThickness: 4
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+            leftBtn.on('pointerdown', () => this.cycle(slot, -1));
 
-        this.time.delayedCall(SUPER_DURATION, () => {
-            this.isSuper = false;
-            this.chris.setTexture('chris');
-            this.chris.clearTint();
-            this.chris.setScale(0.5);
-            (this.frenchies.getChildren() as Physics.Arcade.Sprite[]).forEach(f => f.clearTint());
+            this.refreshPanel(slot);
+
+            const rightBtn = this.add.text(panelX + 90, y, '▶', {
+                fontFamily: 'Arial Black', fontSize: 36, color: '#ff66cc',
+                stroke: '#000000', strokeThickness: 4
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+            rightBtn.on('pointerdown', () => this.cycle(slot, 1));
         });
 
-        this.time.delayedCall(POWERUP_RESPAWN, () => this.placePowerup());
+        // Buttons row — Random on the left, Strut on the right, no overlap.
+        const buttonY = 670;
+        const rand = this.add.rectangle(690, buttonY, 180, 54, 0x4488ff)
+            .setStrokeStyle(3, 0xffffff).setInteractive({ useHandCursor: true });
+        this.add.text(690, buttonY, '🎲 Random', {
+            fontFamily: 'Arial Black', fontSize: 20, color: '#ffffff',
+            stroke: '#000000', strokeThickness: 4
+        }).setOrigin(0.5);
+        rand.on('pointerdown', () => this.randomize());
+
+        const strut = this.add.rectangle(900, buttonY, 180, 60, 0xff3399)
+            .setStrokeStyle(4, 0xffffff).setInteractive({ useHandCursor: true });
+        const strutLabel = this.add.text(900, buttonY, 'STRUT!', {
+            fontFamily: 'Arial Black', fontSize: 28, color: '#ffffff',
+            stroke: '#000000', strokeThickness: 5
+        }).setOrigin(0.5);
+        this.tweens.add({
+            targets: [strut, strutLabel],
+            scale: 1.06,
+            ease: 'Sine.InOut',
+            duration: 700,
+            yoyo: true,
+            repeat: -1
+        });
+        strut.on('pointerdown', () => {
+            const items = SLOT_ORDER.map(s => SLOTS[s].options[this.selection[s]]);
+            this.scene.start('GameOver', { items });
+        });
+
+        this.feedback = this.add.text(320, 740, '', {
+            fontFamily: 'Arial Black', fontSize: 26, color: '#ffcc33',
+            stroke: '#000000', strokeThickness: 6
+        }).setOrigin(0.5);
     }
 
-    hitFrenchie ()
-    {
-        if (this.isSuper) return;
-        if (!this.scene.isActive('Game')) return;
-        this.scene.start('GameOver', { score: this.score });
+    cycle(slot: Slot, dir: number) {
+        const opts = SLOTS[slot].options;
+        const n = opts.length;
+        this.selection[slot] = ((this.selection[slot] + dir) % n + n) % n;
+        this.refreshPanel(slot);
+        this.renderSlot(slot);
+        this.checkEasterEggs(slot);
+    }
+
+    refreshPanel(slot: Slot) {
+        const pos = this.panelPositions[slot]!;
+        const old = this.panelDisplays[slot];
+        if (old) old.destroy();
+
+        const opt = SLOTS[slot].options[this.selection[slot]];
+        let obj: GameObjects.GameObject;
+        if (opt.kind === 'none') {
+            obj = this.add.text(pos.x, pos.y, '—', {
+                fontFamily: 'Arial', fontSize: 44, color: '#888888'
+            }).setOrigin(0.5);
+        } else if (opt.kind === 'emoji') {
+            obj = this.add.text(pos.x, pos.y, opt.emoji, {
+                fontFamily: EMOJI_FONT, fontSize: 42
+            }).setOrigin(0.5);
+        } else {
+            const img = this.add.image(pos.x, pos.y, opt.key);
+            const sourceMax = Math.max(img.width, img.height);
+            img.setScale(64 / sourceMax);
+            obj = img;
+        }
+        this.panelDisplays[slot] = obj;
+    }
+
+    renderSlot(slot: Slot) {
+        const old = this.overlays[slot];
+        if (old) {
+            old.destroy();
+            delete this.overlays[slot];
+        }
+        const opt = SLOTS[slot].options[this.selection[slot]];
+        if (opt.kind === 'none') return;
+
+        const x = CHRIS_X + opt.dxFrac * this.chrisW;
+        const y = CHRIS_Y + opt.dyFrac * this.chrisH;
+
+        let obj: GameObjects.Image | GameObjects.Text;
+        let finalScale: number;
+        if (opt.kind === 'emoji') {
+            obj = this.add.text(x, y, opt.emoji, {
+                fontFamily: EMOJI_FONT, fontSize: opt.size
+            }).setOrigin(0.5).setDepth(opt.depth);
+            finalScale = 1;
+        } else {
+            const img = this.add.image(x, y, opt.key).setOrigin(0.5).setDepth(opt.depth);
+            finalScale = (opt.widthFrac * this.chrisW) / img.width;
+            obj = img;
+        }
+        this.overlays[slot] = obj;
+
+        obj.setScale(0);
+        this.tweens.add({
+            targets: obj,
+            scale: finalScale,
+            ease: 'Back.Out',
+            duration: 280
+        });
+    }
+
+    randomize() {
+        SLOT_ORDER.forEach(slot => {
+            const opts = SLOTS[slot].options;
+            this.selection[slot] = Math.floor(Math.random() * opts.length);
+            this.refreshPanel(slot);
+            this.renderSlot(slot);
+        });
+        this.showFeedback('🎲 Surprise!');
+    }
+
+    checkEasterEggs(slot: Slot) {
+        const opt = SLOTS[slot].options[this.selection[slot]];
+        if (slot === 'head' && opt.kind === 'sprite' && opt.key === 'item-beret') {
+            this.showFeedback('Magnifique! Très français.');
+        }
+    }
+
+    showFeedback(msg: string) {
+        this.feedback.setText(msg);
+        this.feedback.setAlpha(1);
+        this.tweens.killTweensOf(this.feedback);
+        this.tweens.add({
+            targets: this.feedback,
+            alpha: 0,
+            duration: 1800,
+            ease: 'Sine.In'
+        });
     }
 }

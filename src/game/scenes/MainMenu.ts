@@ -27,7 +27,7 @@ export class MainMenu extends Scene
             blendMode: 'ADD'
         });
 
-        this.chris = this.add.image(512, 400, 'chris').setScale(0.7);
+        this.chris = this.add.image(512, 430, 'chris-swimsuit').setScale(0.35);
         this.tweens.add({
             targets: this.chris,
             y: this.chris.y - 10,
@@ -45,7 +45,7 @@ export class MainMenu extends Scene
             repeat: -1
         });
 
-        this.title = this.add.text(512, -100, 'Chrisolutions', {
+        this.title = this.add.text(512, -100, 'Christomization', {
             fontFamily: 'Arial Black', fontSize: 72, color: '#ffffff',
             stroke: '#000000', strokeThickness: 10,
             align: 'center'
@@ -82,7 +82,7 @@ export class MainMenu extends Scene
         });
 
         this.input.once('pointerdown', () => {
-            this.scene.start('Game');
+            this.scene.start('NamePrompt');
         });
     }
 }
