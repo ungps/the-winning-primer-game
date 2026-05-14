@@ -55,6 +55,10 @@ export class Game extends Scene
     }
 
     create() {
+        if (!this.sound.get('bgm') && this.cache.audio.exists('bgm')) {
+            this.sound.add('bgm', { loop: true, volume: 0.5 }).play();
+        }
+
         this.add.image(512, 384, 'background').setAlpha(0.35).setDepth(-100);
 
         this.add.text(CHRIS_X, 36, 'Christomize Chris', {
