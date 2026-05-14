@@ -42,6 +42,7 @@ export class Game extends Scene
     selectionGfx!: GameObjects.Graphics;
     controls!: GameObjects.Container;
     controlSet: GameObjects.GameObject[] = [];
+    uiElements: GameObjects.GameObject[] = [];
 
     constructor() { super('Game'); }
 
@@ -52,6 +53,7 @@ export class Game extends Scene
         this.tabBgs = {};
         this.nextSpawnDepth = 100;
         this.controlSet = [];
+        this.uiElements = [];
     }
 
     create() {
@@ -61,10 +63,11 @@ export class Game extends Scene
 
         this.add.image(512, 384, 'background').setAlpha(0.35).setDepth(-100);
 
-        this.add.text(CHRIS_X, 36, 'Christomize Chris', {
+        const title = this.add.text(CHRIS_X, 36, 'Christomize Chris', {
             fontFamily: 'Arial Black', fontSize: 32, color: '#ffffff',
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
+        this.uiElements.push(title);
 
         // Mannequin
         this.chris = this.add.image(CHRIS_X, CHRIS_Y, 'chris').setDepth(0);
@@ -74,31 +77,46 @@ export class Game extends Scene
         this.chrisH = this.chris.displayHeight;
 
         // Sidebar background
-        this.add.rectangle(SIDEBAR_X + SIDEBAR_W / 2, 384, SIDEBAR_W - 12, 720, 0x000000, 0.35)
+        const sidebar = this.add.rectangle(SIDEBAR_X + SIDEBAR_W / 2, 384, SIDEBAR_W - 12, 720, 0x000000, 0.35)
             .setStrokeStyle(2, 0xffffff, 0.4)
             .setDepth(-50);
+        this.uiElements.push(sidebar);
 
         this.buildTabs();
         this.buildThumbnails();
 
-        // Bottom controls
+        // Clear All
         const clearBtn = this.add.rectangle(110, 730, 180, 50, 0x4488ff)
             .setStrokeStyle(3, 0xffffff)
             .setInteractive({ useHandCursor: true });
-        this.add.text(110, 730, 'Clear All', {
+        const clearLabel = this.add.text(110, 730, 'Clear All', {
             fontFamily: 'Arial Black', fontSize: 22, color: '#ffffff',
             stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
         clearBtn.on('pointerdown', () => this.clearAll());
+        this.uiElements.push(clearBtn, clearLabel);
 
-        this.add.text(CHRIS_X, 738, 'click an item to dress  ·  drag to move  ·  scroll to resize  ·  ✕ to undress', {
+        // Export PNG
+        const exportBtn = this.add.rectangle(310, 730, 180, 50, 0x22aa55)
+            .setStrokeStyle(3, 0xffffff)
+            .setInteractive({ useHandCursor: true });
+        const exportLabel = this.add.text(310, 730, '💾 Export', {
+            fontFamily: 'Arial Black', fontSize: 22, color: '#ffffff',
+            stroke: '#000000', strokeThickness: 4
+        }).setOrigin(0.5);
+        exportBtn.on('pointerdown', () => this.exportPng());
+        this.uiElements.push(exportBtn, exportLabel);
+
+        const hint = this.add.text(CHRIS_X, 762, 'click to dress  ·  drag to move  ·  scroll to resize  ·  ✕ to undress', {
             fontFamily: 'Arial', fontSize: 13, color: '#ffd6f0',
         }).setOrigin(0.5);
+        this.uiElements.push(hint);
 
         // Selection visuals
         this.selectionGfx = this.add.graphics().setDepth(9000);
         this.controls = this.add.container(0, 0).setDepth(9001).setVisible(false);
         this.buildControls();
+        this.uiElements.push(this.selectionGfx, this.controls);
 
         // Deselect when clicking truly empty canvas
         this.input.on('pointerdown', (_p: Input.Pointer, objs: GameObjects.GameObject[]) => {
@@ -118,6 +136,38 @@ export class Game extends Scene
             kb.on('keydown-BACKSPACE', () => { if (this.selected) this.remove(this.selected); });
             kb.on('keydown-ESC',       () => this.setSelected(null));
         }
+
+        this.time.addEvent({
+            delay: 20000,
+            loop: true,
+            callback: () => this.jumpScare(),
+        });
+    }
+
+    jumpScare() {
+        const img = this.add.image(512, 384, 'jumpscare').setDepth(99999);
+        const scale = Math.max(1024 / Math.max(img.width, 1), 768 / Math.max(img.height, 1));
+        img.setScale(scale * 1.05);
+        img.setAlpha(0);
+
+        this.cameras.main.shake(450, 0.025);
+        this.cameras.main.flash(140, 255, 0, 0);
+
+        this.tweens.add({
+            targets: img,
+            alpha: 1,
+            duration: 60,
+            onComplete: () => {
+                this.tweens.add({
+                    targets: img,
+                    alpha: 0,
+                    duration: 350,
+                    delay: 450,
+                    ease: 'Sine.In',
+                    onComplete: () => img.destroy(),
+                });
+            },
+        });
     }
 
     buildTabs() {
@@ -127,11 +177,12 @@ export class Game extends Scene
             const bg = this.add.rectangle(x, TAB_Y, tabW - 6, 44, 0x444466)
                 .setStrokeStyle(2, 0xffffff)
                 .setInteractive({ useHandCursor: true });
-            this.add.text(x, TAB_Y, CATEGORY_LABELS[cat], {
+            const label = this.add.text(x, TAB_Y, CATEGORY_LABELS[cat], {
                 fontFamily: 'Arial Black', fontSize: 18, color: '#ffffff',
                 stroke: '#000000', strokeThickness: 3
             }).setOrigin(0.5);
             this.tabBgs[cat] = bg;
+            this.uiElements.push(bg, label);
             bg.on('pointerdown', () => {
                 this.activeCategory = cat;
                 this.refreshTabs();
@@ -149,8 +200,13 @@ export class Game extends Scene
     }
 
     buildThumbnails() {
-        if (this.thumbnailLayer) this.thumbnailLayer.destroy();
+        if (this.thumbnailLayer) {
+            const idx = this.uiElements.indexOf(this.thumbnailLayer);
+            if (idx >= 0) this.uiElements.splice(idx, 1);
+            this.thumbnailLayer.destroy();
+        }
         this.thumbnailLayer = this.add.container(0, 0);
+        this.uiElements.push(this.thumbnailLayer);
 
         const files = CLOTHING[this.activeCategory];
         if (files.length === 0) {
@@ -291,5 +347,47 @@ export class Game extends Scene
         for (const item of [...this.placed]) item.sprite.destroy();
         this.placed = [];
         this.setSelected(null);
+    }
+
+    exportPng() {
+        const wasSelected = this.selected;
+        this.setSelected(null);
+
+        const candidates: GameObjects.GameObject[] = [
+            ...this.uiElements,
+            this.thumbnailLayer,
+        ];
+        const hidden: GameObjects.GameObject[] = [];
+        for (const obj of candidates) {
+            const o = obj as unknown as { visible?: boolean; setVisible?: (v: boolean) => unknown };
+            if (o && o.setVisible && o.visible !== false) {
+                hidden.push(obj);
+                o.setVisible(false);
+            }
+        }
+
+        const restore = () => {
+            for (const obj of hidden) {
+                (obj as unknown as { setVisible: (v: boolean) => unknown }).setVisible(true);
+            }
+            if (wasSelected && this.placed.includes(wasSelected)) {
+                this.setSelected(wasSelected);
+            }
+        };
+
+        this.game.renderer.snapshotArea(0, 0, SIDEBAR_X, 768, (snapshot: unknown) => {
+            restore();
+            const src =
+                snapshot instanceof HTMLImageElement ? snapshot.src :
+                snapshot instanceof HTMLCanvasElement ? snapshot.toDataURL('image/png') :
+                null;
+            if (!src) return;
+            const a = document.createElement('a');
+            a.href = src;
+            a.download = `chris-${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        });
     }
 }

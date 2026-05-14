@@ -24,6 +24,7 @@ export class Preloader extends Scene
     preload ()
     {
         this.load.image('chris', 'assets/chris.png');
+        this.load.image('jumpscare', 'assets/jumpscare/jumpscare.png');
 
         this.load.audio('bgm', 'music/music.mp3');
 
