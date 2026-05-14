@@ -41,7 +41,21 @@ export const CLOTHING: Record<Category, string[]> = {
         'ChatGPT Image May 14, 2026, 03_40_25 PM.png',
         'image.psd(5).png',
     ],
-    shoes:   [],
+    shoes:   [
+        'armour',
+        'baguette',
+        'ballerina',
+        'blu_running_shoes.png',
+        'bluez.png',
+        'boots',
+        'brown_leather.png',
+        'chain_lace.png',
+        'cowboy_boots',
+        'disco_platform.png',
+        'doggy.png',
+        'hoofs.png',
+        'peugeot.png',
+    ],
 };
 
 // Where (relative to mannequin center) and how big to spawn a fresh item.
