@@ -112,6 +112,47 @@ export class Game extends Scene
         }).setOrigin(0.5);
         this.uiElements.push(hint);
 
+        // Compliments ticker
+        const compliments = [
+            'Magnifique posture.',
+            'Incroyable jawline.',
+            'The baguette suits you.',
+            'Très handsome. Wow.',
+            'Is that Chris or a Greek god?',
+            'Even the Eiffel Tower is jealous.',
+            'Chris could model for Vogue.',
+            'That outfit? Chef\'s kiss.',
+            'Paris called. They want Chris back.',
+            'Ooh là là.',
+            'Better than the Mona Lisa.',
+            'A moment. A vibe. A legend.',
+            'The croissant approves.',
+            'Chris is serving LOOKS.',
+            'Fashion icon. Full stop.',
+            'Mon dieu, what a specimen.',
+        ];
+        let compIdx = 0;
+        const ticker = this.add.text(1050, 755, compliments[0], {
+            fontFamily: 'Arial Black', fontSize: 24, color: '#ffcc33',
+            fontStyle: 'italic',
+            stroke: '#000000', strokeThickness: 5,
+        }).setOrigin(0, 0.5).setDepth(8000);
+        this.uiElements.push(ticker);
+
+        const scrollNext = () => {
+            ticker.setText(compliments[compIdx % compliments.length]);
+            ticker.setX(1050);
+            compIdx++;
+            this.tweens.add({
+                targets: ticker,
+                x: -ticker.width - 20,
+                duration: 5000,
+                ease: 'Linear',
+                onComplete: scrollNext,
+            });
+        };
+        scrollNext();
+
         // Selection visuals
         this.selectionGfx = this.add.graphics().setDepth(9000);
         this.controls = this.add.container(0, 0).setDepth(9001).setVisible(false);
