@@ -9,6 +9,9 @@ export class NamePrompt extends Scene
     constructor() { super('NamePrompt'); }
 
     create() {
+        const bgm = this.sound.get('bgm');
+        if (bgm) bgm.destroy();
+
         this.typed = '';
 
         this.add.image(512, 384, 'background').setAlpha(0.55);
