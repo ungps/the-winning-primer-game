@@ -1,288 +1,291 @@
-import { Scene, GameObjects } from 'phaser';
+import { Scene, GameObjects, Input } from 'phaser';
+import {
+    Category,
+    CATEGORIES,
+    CATEGORY_LABELS,
+    CATEGORY_DEFAULTS,
+    CLOTHING,
+    itemKey,
+} from '../clothing';
 
-type Slot = 'head' | 'face' | 'body' | 'legs' | 'hands';
-
-type ItemOption =
-    | { kind: 'none' }
-    | { kind: 'emoji';  emoji: string; size: number; dxFrac: number; dyFrac: number; depth: number; label: string }
-    | { kind: 'sprite'; key: string;   widthFrac: number; dxFrac: number; dyFrac: number; depth: number; label: string };
-
-interface SlotConfig {
-    label: string;
-    options: ItemOption[];
+interface PlacedItem {
+    sprite: GameObjects.Image;
+    category: Category;
+    filename: string;
 }
 
-const CHRIS_X = 320;
-const CHRIS_Y = 410;
-const CHRIS_SCALE = 0.42;
-const EMOJI_FONT = 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Arial';
+const CHRIS_X = 310;
+const CHRIS_Y = 400;
+const CHRIS_TARGET_H = 600;
 
-const D_BODY  = 4;
-const D_LEGS  = 4;
-const D_HEAD  = 6;
-const D_FACE  = 7;
-const D_HANDS = 7;
-
-const SLOTS: Record<Slot, SlotConfig> = {
-    head: {
-        label: 'Tête',
-        options: [
-            { kind: 'none' },
-            { kind: 'sprite', key: 'item-beret', widthFrac: 0.50, dxFrac: 0, dyFrac: -0.42, depth: D_HEAD, label: 'Pink beret' },
-            { kind: 'sprite', key: 'item-bunny', widthFrac: 0.30, dxFrac: 0, dyFrac: -0.45, depth: D_HEAD, label: 'Bunny hat' },
-            { kind: 'emoji', emoji: '🎩', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Top hat' },
-            { kind: 'emoji', emoji: '👑', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Crown' },
-            { kind: 'emoji', emoji: '🥐', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Croissant' },
-            { kind: 'emoji', emoji: '🍕', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Pizza' },
-            { kind: 'emoji', emoji: '🤠', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Cowboy' },
-            { kind: 'emoji', emoji: '🎓', size: 80, dxFrac: 0, dyFrac: -0.46, depth: D_HEAD, label: 'Grad cap' },
-        ],
-    },
-    face: {
-        label: 'Visage',
-        options: [
-            { kind: 'none' },
-            { kind: 'emoji', emoji: '🕶️', size: 60, dxFrac: 0, dyFrac: -0.34, depth: D_FACE, label: 'Shades' },
-            { kind: 'emoji', emoji: '🥸', size: 60, dxFrac: 0, dyFrac: -0.34, depth: D_FACE, label: 'Disguise' },
-            { kind: 'emoji', emoji: '🤿', size: 60, dxFrac: 0, dyFrac: -0.34, depth: D_FACE, label: 'Snorkel' },
-            { kind: 'emoji', emoji: '😷', size: 60, dxFrac: 0, dyFrac: -0.34, depth: D_FACE, label: 'Mask' },
-            { kind: 'emoji', emoji: '🧐', size: 60, dxFrac: 0, dyFrac: -0.34, depth: D_FACE, label: 'Monocle' },
-        ],
-    },
-    body: {
-        label: 'Corps',
-        options: [
-            { kind: 'none' },
-            { kind: 'sprite', key: 'item-tshirt', widthFrac: 0.55, dxFrac: 0, dyFrac: -0.10, depth: D_BODY, label: 'Emoji tee' },
-            { kind: 'emoji', emoji: '🦺', size: 90, dxFrac: 0, dyFrac: -0.08, depth: D_BODY, label: 'Hi-vis' },
-            { kind: 'emoji', emoji: '👔', size: 90, dxFrac: 0, dyFrac: -0.08, depth: D_BODY, label: 'Tie' },
-            { kind: 'emoji', emoji: '🎺', size: 80, dxFrac: 0, dyFrac: -0.08, depth: D_BODY, label: 'Trumpet' },
-            { kind: 'emoji', emoji: '📿', size: 70, dxFrac: 0, dyFrac: -0.16, depth: D_BODY, label: 'Beads' },
-        ],
-    },
-    legs: {
-        label: 'Jambes',
-        options: [
-            { kind: 'none' },
-            { kind: 'sprite', key: 'item-pants', widthFrac: 0.70, dxFrac: 0, dyFrac: 0.15, depth: D_LEGS, label: 'Pink pants' },
-        ],
-    },
-    hands: {
-        label: 'Mains',
-        options: [
-            { kind: 'none' },
-            { kind: 'emoji', emoji: '🥖', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Baguette' },
-            { kind: 'emoji', emoji: '🍌', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Banana' },
-            { kind: 'emoji', emoji: '🎤', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Mic' },
-            { kind: 'emoji', emoji: '🍷', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Wine' },
-            { kind: 'emoji', emoji: '🪄', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Wand' },
-            { kind: 'emoji', emoji: '🐠', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Fish' },
-            { kind: 'emoji', emoji: '🥐', size: 50, dxFrac: 0.18, dyFrac: 0.12, depth: D_HANDS, label: 'Croissant' },
-        ],
-    },
-};
-
-const SLOT_ORDER: Slot[] = ['head', 'face', 'body', 'legs', 'hands'];
+const SIDEBAR_X = 640;
+const SIDEBAR_W = 1024 - SIDEBAR_X;
+const TAB_Y = 80;
+const GRID_Y = 140;
+const THUMB_SIZE = 96;
+const THUMB_GAP = 14;
 
 export class Game extends Scene
 {
-    chris: GameObjects.Image;
+    chris!: GameObjects.Image;
     chrisW = 0;
     chrisH = 0;
-    overlays: Partial<Record<Slot, GameObjects.GameObject>> = {};
-    panelDisplays: Partial<Record<Slot, GameObjects.GameObject>> = {};
-    panelPositions: Partial<Record<Slot, { x: number; y: number }>> = {};
-    selection: Record<Slot, number> = { head: 0, face: 0, body: 0, legs: 0, hands: 0 };
-    feedback: GameObjects.Text;
+
+    activeCategory: Category = 'tops';
+    tabBgs: Partial<Record<Category, GameObjects.Rectangle>> = {};
+    thumbnailLayer!: GameObjects.Container;
+
+    placed: PlacedItem[] = [];
+    selected: PlacedItem | null = null;
+    nextSpawnDepth = 100;
+
+    selectionGfx!: GameObjects.Graphics;
+    controls!: GameObjects.Container;
+    controlSet: GameObjects.GameObject[] = [];
 
     constructor() { super('Game'); }
 
     init() {
-        this.selection = { head: 0, face: 0, body: 0, legs: 0, hands: 0 };
-        this.overlays = {};
-        this.panelDisplays = {};
-        this.panelPositions = {};
+        this.placed = [];
+        this.selected = null;
+        this.activeCategory = 'tops';
+        this.tabBgs = {};
+        this.nextSpawnDepth = 100;
+        this.controlSet = [];
     }
 
     create() {
-        this.add.image(512, 384, 'background').setAlpha(0.4).setDepth(-1);
+        this.add.image(512, 384, 'background').setAlpha(0.35).setDepth(-100);
 
-        this.add.text(320, 50, 'Christomize Chris', {
-            fontFamily: 'Arial Black', fontSize: 36, color: '#ffffff',
+        this.add.text(CHRIS_X, 36, 'Christomize Chris', {
+            fontFamily: 'Arial Black', fontSize: 32, color: '#ffffff',
             stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
 
-        this.add.text(320, 90, 'Bonjour. Habillez-vous.', {
-            fontFamily: 'Arial', fontSize: 20, color: '#ffd6f0',
-            stroke: '#000000', strokeThickness: 3
-        }).setOrigin(0.5);
-
-        this.chris = this.add.image(CHRIS_X, CHRIS_Y, 'chris-swimsuit').setScale(CHRIS_SCALE).setDepth(0);
+        // Mannequin
+        this.chris = this.add.image(CHRIS_X, CHRIS_Y, 'chris').setDepth(0);
+        const fit = CHRIS_TARGET_H / this.chris.height;
+        this.chris.setScale(fit);
         this.chrisW = this.chris.displayWidth;
         this.chrisH = this.chris.displayHeight;
-        this.tweens.add({
-            targets: this.chris,
-            y: CHRIS_Y - 6,
-            ease: 'Sine.InOut',
-            duration: 1800,
-            yoyo: true,
-            repeat: -1
-        });
 
-        const panelX = 800;
-        SLOT_ORDER.forEach((slot, i) => {
-            const y = 155 + i * 92;
-            this.panelPositions[slot] = { x: panelX, y };
+        // Sidebar background
+        this.add.rectangle(SIDEBAR_X + SIDEBAR_W / 2, 384, SIDEBAR_W - 12, 720, 0x000000, 0.35)
+            .setStrokeStyle(2, 0xffffff, 0.4)
+            .setDepth(-50);
 
-            this.add.text(panelX - 200, y, SLOTS[slot].label, {
-                fontFamily: 'Arial Black', fontSize: 24, color: '#ffffff',
-                stroke: '#000000', strokeThickness: 4
-            }).setOrigin(0, 0.5);
+        this.buildTabs();
+        this.buildThumbnails();
 
-            const leftBtn = this.add.text(panelX - 90, y, '◀', {
-                fontFamily: 'Arial Black', fontSize: 36, color: '#ff66cc',
-                stroke: '#000000', strokeThickness: 4
-            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-            leftBtn.on('pointerdown', () => this.cycle(slot, -1));
-
-            this.refreshPanel(slot);
-
-            const rightBtn = this.add.text(panelX + 90, y, '▶', {
-                fontFamily: 'Arial Black', fontSize: 36, color: '#ff66cc',
-                stroke: '#000000', strokeThickness: 4
-            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-            rightBtn.on('pointerdown', () => this.cycle(slot, 1));
-        });
-
-        // Buttons row — Random on the left, Strut on the right, no overlap.
-        const buttonY = 670;
-        const rand = this.add.rectangle(690, buttonY, 180, 54, 0x4488ff)
-            .setStrokeStyle(3, 0xffffff).setInteractive({ useHandCursor: true });
-        this.add.text(690, buttonY, '🎲 Random', {
-            fontFamily: 'Arial Black', fontSize: 20, color: '#ffffff',
+        // Bottom controls
+        const clearBtn = this.add.rectangle(110, 730, 180, 50, 0x4488ff)
+            .setStrokeStyle(3, 0xffffff)
+            .setInteractive({ useHandCursor: true });
+        this.add.text(110, 730, 'Clear All', {
+            fontFamily: 'Arial Black', fontSize: 22, color: '#ffffff',
             stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
-        rand.on('pointerdown', () => this.randomize());
+        clearBtn.on('pointerdown', () => this.clearAll());
 
-        const strut = this.add.rectangle(900, buttonY, 180, 60, 0xff3399)
-            .setStrokeStyle(4, 0xffffff).setInteractive({ useHandCursor: true });
-        const strutLabel = this.add.text(900, buttonY, 'STRUT!', {
-            fontFamily: 'Arial Black', fontSize: 28, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 5
+        this.add.text(CHRIS_X, 738, 'click an item to dress  ·  drag to move  ·  scroll to resize  ·  ✕ to undress', {
+            fontFamily: 'Arial', fontSize: 13, color: '#ffd6f0',
         }).setOrigin(0.5);
-        this.tweens.add({
-            targets: [strut, strutLabel],
-            scale: 1.06,
-            ease: 'Sine.InOut',
-            duration: 700,
-            yoyo: true,
-            repeat: -1
-        });
-        strut.on('pointerdown', () => {
-            const items = SLOT_ORDER.map(s => SLOTS[s].options[this.selection[s]]);
-            this.scene.start('GameOver', { items });
+
+        // Selection visuals
+        this.selectionGfx = this.add.graphics().setDepth(9000);
+        this.controls = this.add.container(0, 0).setDepth(9001).setVisible(false);
+        this.buildControls();
+
+        // Deselect when clicking truly empty canvas
+        this.input.on('pointerdown', (_p: Input.Pointer, objs: GameObjects.GameObject[]) => {
+            if (objs.length === 0) this.setSelected(null);
         });
 
-        this.feedback = this.add.text(320, 740, '', {
-            fontFamily: 'Arial Black', fontSize: 26, color: '#ffcc33',
-            stroke: '#000000', strokeThickness: 6
-        }).setOrigin(0.5);
+        // Mouse wheel resizes the currently selected item
+        this.input.on('wheel', (_p: Input.Pointer, _objs: GameObjects.GameObject[], _dx: number, dy: number) => {
+            if (!this.selected) return;
+            const factor = dy > 0 ? 1 / 1.08 : 1.08;
+            this.resize(this.selected, factor);
+        });
+
+        const kb = this.input.keyboard;
+        if (kb) {
+            kb.on('keydown-DELETE',    () => { if (this.selected) this.remove(this.selected); });
+            kb.on('keydown-BACKSPACE', () => { if (this.selected) this.remove(this.selected); });
+            kb.on('keydown-ESC',       () => this.setSelected(null));
+        }
     }
 
-    cycle(slot: Slot, dir: number) {
-        const opts = SLOTS[slot].options;
-        const n = opts.length;
-        this.selection[slot] = ((this.selection[slot] + dir) % n + n) % n;
-        this.refreshPanel(slot);
-        this.renderSlot(slot);
-        this.checkEasterEggs(slot);
-    }
-
-    refreshPanel(slot: Slot) {
-        const pos = this.panelPositions[slot]!;
-        const old = this.panelDisplays[slot];
-        if (old) old.destroy();
-
-        const opt = SLOTS[slot].options[this.selection[slot]];
-        let obj: GameObjects.GameObject;
-        if (opt.kind === 'none') {
-            obj = this.add.text(pos.x, pos.y, '—', {
-                fontFamily: 'Arial', fontSize: 44, color: '#888888'
+    buildTabs() {
+        const tabW = (SIDEBAR_W - 24) / CATEGORIES.length;
+        CATEGORIES.forEach((cat, i) => {
+            const x = SIDEBAR_X + 12 + tabW * (i + 0.5);
+            const bg = this.add.rectangle(x, TAB_Y, tabW - 6, 44, 0x444466)
+                .setStrokeStyle(2, 0xffffff)
+                .setInteractive({ useHandCursor: true });
+            this.add.text(x, TAB_Y, CATEGORY_LABELS[cat], {
+                fontFamily: 'Arial Black', fontSize: 18, color: '#ffffff',
+                stroke: '#000000', strokeThickness: 3
             }).setOrigin(0.5);
-        } else if (opt.kind === 'emoji') {
-            obj = this.add.text(pos.x, pos.y, opt.emoji, {
-                fontFamily: EMOJI_FONT, fontSize: 42
+            this.tabBgs[cat] = bg;
+            bg.on('pointerdown', () => {
+                this.activeCategory = cat;
+                this.refreshTabs();
+                this.buildThumbnails();
+            });
+        });
+        this.refreshTabs();
+    }
+
+    refreshTabs() {
+        for (const cat of CATEGORIES) {
+            const bg = this.tabBgs[cat];
+            if (bg) bg.setFillStyle(cat === this.activeCategory ? 0xff3399 : 0x444466);
+        }
+    }
+
+    buildThumbnails() {
+        if (this.thumbnailLayer) this.thumbnailLayer.destroy();
+        this.thumbnailLayer = this.add.container(0, 0);
+
+        const files = CLOTHING[this.activeCategory];
+        if (files.length === 0) {
+            const t = this.add.text(
+                SIDEBAR_X + SIDEBAR_W / 2,
+                GRID_Y + 90,
+                `No ${CATEGORY_LABELS[this.activeCategory].toLowerCase()} yet.\n\nDrop a PNG into\npublic/assets/${this.activeCategory}/\nand list its filename in\nsrc/game/clothing.ts`,
+                {
+                    fontFamily: 'Arial', fontSize: 14, color: '#cccccc', align: 'center',
+                }
+            ).setOrigin(0.5);
+            this.thumbnailLayer.add(t);
+            return;
+        }
+
+        const cols = 3;
+        files.forEach((file, i) => {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = SIDEBAR_X + 24 + col * (THUMB_SIZE + THUMB_GAP) + THUMB_SIZE / 2;
+            const y = GRID_Y + row * (THUMB_SIZE + THUMB_GAP) + THUMB_SIZE / 2;
+
+            const frame = this.add.rectangle(x, y, THUMB_SIZE, THUMB_SIZE, 0xffffff, 0.08)
+                .setStrokeStyle(2, 0xffffff, 0.6);
+            const img = this.add.image(x, y, itemKey(this.activeCategory, file));
+            const m = Math.max(img.width, img.height) || 1;
+            img.setScale((THUMB_SIZE - 12) / m);
+
+            const hit = this.add.rectangle(x, y, THUMB_SIZE, THUMB_SIZE, 0xffffff, 0.001)
+                .setInteractive({ useHandCursor: true });
+            hit.on('pointerdown', () => this.spawn(this.activeCategory, file));
+            hit.on('pointerover', () => frame.setStrokeStyle(3, 0xff66cc));
+            hit.on('pointerout',  () => frame.setStrokeStyle(2, 0xffffff, 0.6));
+
+            this.thumbnailLayer.add([frame, img, hit]);
+        });
+    }
+
+    spawn(category: Category, filename: string) {
+        const defaults = CATEGORY_DEFAULTS[category];
+        const x = CHRIS_X;
+        const y = CHRIS_Y + defaults.dyFrac * this.chrisH;
+
+        const sprite = this.add.image(x, y, itemKey(category, filename))
+            .setOrigin(0.5)
+            .setDepth(defaults.depth + this.nextSpawnDepth++);
+
+        const targetScale = (defaults.widthFrac * this.chrisW) / Math.max(sprite.width, 1);
+
+        sprite.setInteractive({ useHandCursor: true, draggable: true });
+        this.input.setDraggable(sprite);
+
+        const item: PlacedItem = { sprite, category, filename };
+        this.placed.push(item);
+
+        sprite.on('pointerdown', () => this.setSelected(item));
+        sprite.on('drag', (_p: Input.Pointer, dragX: number, dragY: number) => {
+            sprite.setPosition(dragX, dragY);
+            if (this.selected === item) this.refreshSelectionVisuals();
+        });
+
+        sprite.setScale(0);
+        this.tweens.add({ targets: sprite, scale: targetScale, ease: 'Back.Out', duration: 240 });
+
+        this.setSelected(item);
+    }
+
+    setSelected(item: PlacedItem | null) {
+        this.selected = item;
+        if (!item) {
+            this.selectionGfx.clear();
+            this.controls.setVisible(false);
+            return;
+        }
+        // Bring selected to top
+        item.sprite.setDepth(this.nextSpawnDepth++ + 1000);
+        this.refreshSelectionVisuals();
+    }
+
+    refreshSelectionVisuals() {
+        const item = this.selected;
+        if (!item) return;
+
+        const s = item.sprite;
+        const w = s.displayWidth;
+        const h = s.displayHeight;
+        const x = s.x - w / 2;
+        const y = s.y - h / 2;
+
+        this.selectionGfx.clear();
+        this.selectionGfx.lineStyle(3, 0xffcc33, 0.95);
+        this.selectionGfx.strokeRect(x - 4, y - 4, w + 8, h + 8);
+
+        // Anchor the +/-/X bar above the item, but keep it on-screen.
+        const barY = Math.max(28, y - 28);
+        const barX = Math.min(Math.max(60, s.x), SIDEBAR_X - 60);
+        this.controls.setPosition(barX, barY);
+        this.controls.setVisible(true);
+    }
+
+    buildControls() {
+        const button = (offset: number, label: string, color: number, onClick: () => void) => {
+            const bg = this.add.rectangle(offset, 0, 36, 36, color)
+                .setStrokeStyle(2, 0xffffff)
+                .setInteractive({ useHandCursor: true });
+            const t = this.add.text(offset, 0, label, {
+                fontFamily: 'Arial Black', fontSize: 20, color: '#ffffff',
+                stroke: '#000000', strokeThickness: 3
             }).setOrigin(0.5);
-        } else {
-            const img = this.add.image(pos.x, pos.y, opt.key);
-            const sourceMax = Math.max(img.width, img.height);
-            img.setScale(64 / sourceMax);
-            obj = img;
-        }
-        this.panelDisplays[slot] = obj;
+            bg.on('pointerdown', (_p: Input.Pointer, _x: number, _y: number, ev: { stopPropagation: () => void }) => {
+                onClick();
+                ev.stopPropagation();
+            });
+            return [bg, t] as GameObjects.GameObject[];
+        };
+
+        const minus = button(-46, '−', 0x4488ff, () => { if (this.selected) this.resize(this.selected, 1 / 1.12); });
+        const plus  = button(  0, '+',      0x4488ff, () => { if (this.selected) this.resize(this.selected, 1.12); });
+        const close = button( 46, '✕', 0xff3366, () => { if (this.selected) this.remove(this.selected); });
+
+        this.controlSet = [...minus, ...plus, ...close];
+        this.controls.add(this.controlSet);
     }
 
-    renderSlot(slot: Slot) {
-        const old = this.overlays[slot];
-        if (old) {
-            old.destroy();
-            delete this.overlays[slot];
-        }
-        const opt = SLOTS[slot].options[this.selection[slot]];
-        if (opt.kind === 'none') return;
-
-        const x = CHRIS_X + opt.dxFrac * this.chrisW;
-        const y = CHRIS_Y + opt.dyFrac * this.chrisH;
-
-        let obj: GameObjects.Image | GameObjects.Text;
-        let finalScale: number;
-        if (opt.kind === 'emoji') {
-            obj = this.add.text(x, y, opt.emoji, {
-                fontFamily: EMOJI_FONT, fontSize: opt.size
-            }).setOrigin(0.5).setDepth(opt.depth);
-            finalScale = 1;
-        } else {
-            const img = this.add.image(x, y, opt.key).setOrigin(0.5).setDepth(opt.depth);
-            finalScale = (opt.widthFrac * this.chrisW) / img.width;
-            obj = img;
-        }
-        this.overlays[slot] = obj;
-
-        obj.setScale(0);
-        this.tweens.add({
-            targets: obj,
-            scale: finalScale,
-            ease: 'Back.Out',
-            duration: 280
-        });
+    resize(item: PlacedItem, factor: number) {
+        const next = Math.max(0.05, Math.min(3.0, item.sprite.scaleX * factor));
+        item.sprite.setScale(next);
+        if (this.selected === item) this.refreshSelectionVisuals();
     }
 
-    randomize() {
-        SLOT_ORDER.forEach(slot => {
-            const opts = SLOTS[slot].options;
-            this.selection[slot] = Math.floor(Math.random() * opts.length);
-            this.refreshPanel(slot);
-            this.renderSlot(slot);
-        });
-        this.showFeedback('🎲 Surprise!');
+    remove(item: PlacedItem) {
+        item.sprite.destroy();
+        this.placed = this.placed.filter(p => p !== item);
+        if (this.selected === item) this.setSelected(null);
     }
 
-    checkEasterEggs(slot: Slot) {
-        const opt = SLOTS[slot].options[this.selection[slot]];
-        if (slot === 'head' && opt.kind === 'sprite' && opt.key === 'item-beret') {
-            this.showFeedback('Magnifique! Très français.');
-        }
-    }
-
-    showFeedback(msg: string) {
-        this.feedback.setText(msg);
-        this.feedback.setAlpha(1);
-        this.tweens.killTweensOf(this.feedback);
-        this.tweens.add({
-            targets: this.feedback,
-            alpha: 0,
-            duration: 1800,
-            ease: 'Sine.In'
-        });
+    clearAll() {
+        for (const item of [...this.placed]) item.sprite.destroy();
+        this.placed = [];
+        this.setSelected(null);
     }
 }

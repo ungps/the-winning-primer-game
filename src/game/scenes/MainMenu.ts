@@ -27,7 +27,9 @@ export class MainMenu extends Scene
             blendMode: 'ADD'
         });
 
-        this.chris = this.add.image(512, 430, 'chris-swimsuit').setScale(0.35);
+        this.chris = this.add.image(512, 430, 'chris');
+        const fit = 500 / this.chris.height;
+        this.chris.setScale(fit);
         this.tweens.add({
             targets: this.chris,
             y: this.chris.y - 10,

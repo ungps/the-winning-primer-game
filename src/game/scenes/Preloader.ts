@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { CATEGORIES, CLOTHING, itemKey, itemUrl } from '../clothing';
 
 export class Preloader extends Scene
 {
@@ -22,11 +23,13 @@ export class Preloader extends Scene
 
     preload ()
     {
-        this.load.image('chris-swimsuit', 'chris/swimsuit-chris.png');
-        this.load.image('item-beret',    'chris/pink-beret.png');
-        this.load.image('item-bunny',    'chris/bunny-hat.png');
-        this.load.image('item-tshirt',   'chris/t-shirt.png');
-        this.load.image('item-pants',    'chris/pink-pants.png');
+        this.load.image('chris', 'assets/chris.png');
+
+        for (const category of CATEGORIES) {
+            for (const filename of CLOTHING[category]) {
+                this.load.image(itemKey(category, filename), itemUrl(category, filename));
+            }
+        }
     }
 
     create ()
